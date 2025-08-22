@@ -10,10 +10,18 @@ const mongoose = require("mongoose");
 /**
  * Generate bulk QR codes for a product
  */
+const cloudinary = require("cloudinary").v2;
+
+// Example Cloudinary setup (config only once, maybe in app.js or config file)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD,
+  api_key: process.env.CLOUDINARY_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET
+});
+
 exports.generateQRCodes = async (req, res) => {
   try {
-    const { productId, amount, count } = req.body; // count = how many QRs to generate
-
+    const { productId, amount, count } = req.body;
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ error: "Product not found" });
 
@@ -21,24 +29,25 @@ exports.generateQRCodes = async (req, res) => {
 
     for (let i = 0; i < count; i++) {
       const uniqueCode = uuidv4();
+      const qrData = { id: uniqueCode, productId, amount };
+      const qrImageBase64 = await QRCode.toDataURL(JSON.stringify(qrData));
 
-      // Save in DB
+      // Upload to Cloudinary
+      const uploadRes = await cloudinary.uploader.upload(qrImageBase64, {
+        folder: "qr_codes",
+        public_id: uniqueCode
+      });
+
       const qr = await QRCodeModel.create({
         code: uniqueCode,
         product: productId,
-        amount
+        amount,
+        qrImageUrl: uploadRes.secure_url
       });
 
-      // Generate QR data string (safe minimal info)
-      const qrData = { id: uniqueCode, productId, amount };
-
-      // QR Image (Base64) → only if needed in response
-      const qrImage = await QRCode.toDataURL(JSON.stringify(qrData));
-
-      qrCodes.push({ code: uniqueCode, qrImage });
+      qrCodes.push(qr);
     }
 
-    // update product stats
     product.qrCount += count;
     await product.save();
 
@@ -47,6 +56,7 @@ exports.generateQRCodes = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /**
  * Redeem a QR code

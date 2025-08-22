@@ -12,7 +12,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 
-const User = require("./src/routes/user")
+const User = require("./src/routes/user");
+const QRCODE = require("./src/routes/qrcode");
+const Product = require("./src/routes/product");
 
 
 const port = process.env.PORT || 9000;
@@ -46,7 +48,9 @@ db.on("disconnected", () => {
 // Routes
 
 
-app.use('/api/user', User)
+app.use('/api/user', User);
+app.use('/api/qrcode', QRCODE);
+app.use('/api/product', Product);
 
 
 
