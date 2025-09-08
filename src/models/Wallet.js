@@ -16,6 +16,10 @@ const walletSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    totalEarning: {
+        type: Number,
+        default: 0,
+      },
     currency: {
       type: String,
       default: "INR",
