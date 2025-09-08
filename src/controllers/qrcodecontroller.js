@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const QRCodeModel = require("../models/Qrcode");
 const Product = require("../models/Product");
 const User = require("../models/User");
-const AdminWallet = require("../models/Adminwallet");
+const Wallet = require("../models/Wallet");
 const Transaction = require("../models/Transaction");
 const mongoose = require("mongoose");
 
@@ -19,6 +19,45 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET
 });
 
+// exports.generateQRCodes = async (req, res) => {
+//   try {
+//     const { productId, amount, count } = req.body;
+//     const product = await Product.findById(productId);
+//     if (!product) return res.status(404).json({ error: "Product not found" });
+
+//     let qrCodes = [];
+
+//     for (let i = 0; i < count; i++) {
+//       const uniqueCode = uuidv4();
+//       const qrData = { id: uniqueCode, productId, amount };
+//       const qrImageBase64 = await QRCode.toDataURL(JSON.stringify(qrData));
+
+//       // Upload to Cloudinary
+//       const uploadRes = await cloudinary.uploader.upload(qrImageBase64, {
+//         folder: "qr_codes",
+//         public_id: uniqueCode
+//       });
+
+//       const qr = await QRCodeModel.create({
+//         code: uniqueCode,
+//         product: productId,
+//         amount,
+//         qrImageUrl: uploadRes.secure_url
+//       });
+
+//       qrCodes.push(qr);
+//     }
+
+//     product.qrCount += count;
+//     await product.save();
+
+//     res.json({ success: true, qrCodes });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
 exports.generateQRCodes = async (req, res) => {
   try {
     const { productId, amount, count } = req.body;
@@ -28,9 +67,11 @@ exports.generateQRCodes = async (req, res) => {
     let qrCodes = [];
 
     for (let i = 0; i < count; i++) {
+      // Only keep UUID / unique code in QR
       const uniqueCode = uuidv4();
-      const qrData = { id: uniqueCode, productId, amount };
-      const qrImageBase64 = await QRCode.toDataURL(JSON.stringify(qrData));
+
+      // Encode only the unique code (not amount/product)
+      const qrImageBase64 = await QRCode.toDataURL(uniqueCode);
 
       // Upload to Cloudinary
       const uploadRes = await cloudinary.uploader.upload(qrImageBase64, {
@@ -58,15 +99,92 @@ exports.generateQRCodes = async (req, res) => {
 };
 
 
+
 /**
  * Redeem a QR code
  */
+// exports.redeemQRCode = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { code } = req.body;
+//     const userId = req.user._id;
+
+//     console.log("code", code);
+//     console.log("userId", userId);
+
+//     // Atomically find and mark QR as used
+//     const qr = await QRCodeModel.findOneAndUpdate(
+//       { code, status: "unused" },
+//       { $set: { status: "used", usedBy: userId, usedAt: new Date() } },
+//       { session, new: true }
+//     );
+//     if (!qr) throw new Error("QR not found or already used");
+
+//     // --- Wallet System ---
+//     // Get Admin Wallet
+//     const adminWallet = await Wallet.findOne({ ownerType: "admin" }).session(session);
+//     if (!adminWallet || adminWallet.balance < qr.amount) {
+//       throw new Error("Insufficient admin balance");
+//     }
+
+//     // Get User Wallet (create if not exists)
+//     let userWallet = await Wallet.findOne({ ownerType: "user", ownerId: userId }).session(session);
+//     if (!userWallet) {
+//       userWallet = new Wallet({ ownerType: "user", ownerId: userId, balance: 0 });
+//     }
+
+//     // Adjust balances
+//     adminWallet.balance -= qr.amount;
+//     userWallet.balance += qr.amount;
+
+//     await adminWallet.save({ session });
+//     await userWallet.save({ session });
+
+//     // Save transaction
+//     const transaction = await Transaction.create(
+//       [
+//         {
+//           qrCode: qr._id,
+//           product: qr.product,
+//           amount: qr.amount,
+//           fromWallet: adminWallet._id,
+//           toWallet: userWallet._id,
+//           status: "pending_payout", // will be settled at midnight
+//           payoutBatchDate: new Date().setHours(0, 0, 0, 0) // today’s batch
+//         }
+//       ],
+//       { session }
+//     );
+
+//     const productUsedQrCodes = await Product.qrUsed + 1;
+
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     res.json({ success: true, transaction });
+//   } catch (err) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     res.status(400).json({ error: err.message });
+//   }
+// };
+
+
+
+
+
+
+
 exports.redeemQRCode = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { code, userId } = req.body;
+    const { code } = req.body;
+    const userId = req.user._id;
 
     // Atomically find and mark QR as used
     const qr = await QRCodeModel.findOneAndUpdate(
@@ -76,31 +194,41 @@ exports.redeemQRCode = async (req, res) => {
     );
     if (!qr) throw new Error("QR not found or already used");
 
-    // Check admin wallet
-    const adminWallet = await AdminWallet.findOne().session(session);
+    // Admin wallet
+    const adminWallet = await Wallet.findOne({ ownerType: "admin" }).session(session);
     if (!adminWallet || adminWallet.balance < qr.amount) {
       throw new Error("Insufficient admin balance");
     }
 
-    // Credit user wallet
-    const user = await User.findById(userId).session(session);
-    if (!user) throw new Error("User not found");
+    // User wallet (create if not exists)
+    let userWallet = await Wallet.findOne({ ownerType: "user", ownerId: userId }).session(session);
+    if (!userWallet) {
+      userWallet = new Wallet({ ownerType: "user", ownerId: userId, balance: 0 });
+      await userWallet.save({ session });
+    }
 
+    // Adjust balances
     adminWallet.balance -= qr.amount;
-    user.walletBalance += qr.amount;
-
+    userWallet.balance += qr.amount;
     await adminWallet.save({ session });
-    await user.save({ session });
+    await userWallet.save({ session });
 
     // Save transaction
-    const transaction = await Transaction.create(
-      [{
-        qrCode: qr._id,
-        product: qr.product,
-        amount: qr.amount,
-        to: user._id,
-        status: "success"
-      }],
+    const transaction = new Transaction({
+      qrCode: qr._id,
+      product: qr.product,
+      amount: qr.amount,
+      fromWallet: adminWallet._id,
+      toWallet: userWallet._id,
+      status: "pending_payout",
+      payoutBatchDate: new Date(new Date().setHours(0, 0, 0, 0))
+    });
+    await transaction.save({ session });
+
+    // Increment product QR usage
+    await Product.findByIdAndUpdate(
+      qr.product,
+      { $inc: { qrUsed: 1 } },
       { session }
     );
 
@@ -114,6 +242,15 @@ exports.redeemQRCode = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+
+
+
+
+
+
+
+
 
 /**
  * Get QR code details
@@ -160,3 +297,15 @@ exports.getUserQRCodes = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+/**
+ * Get all QR codes (Admin)
+ */
+exports.getAllQRCodes = async (req, res) => {
+  try {
+    const qrCodes = await QRCodeModel.find().populate("product usedBy");
+    res.json(qrCodes);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}

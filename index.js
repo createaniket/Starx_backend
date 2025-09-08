@@ -13,6 +13,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 const User = require("./src/routes/user");
+const Admin = require("./src/routes/admin");
 const QRCODE = require("./src/routes/qrcode");
 const Product = require("./src/routes/product");
 
@@ -51,6 +52,7 @@ db.on("disconnected", () => {
 app.use('/api/user', User);
 app.use('/api/qrcode', QRCODE);
 app.use('/api/product', Product);
+app.use('/api/admin', Admin);
 
 
 

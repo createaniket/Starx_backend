@@ -28,7 +28,6 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
     },
 
     tokens: [
@@ -51,6 +50,19 @@ UserSchema.methods.generateAuthToken = async function () {
   console.log(token); // consoling the token
   return token;
 };
+
+UserSchema.methods.CreateWallet = async function () {
+  const user = this;
+  const Wallet = require("./Wallet");
+  const wallet = new Wallet({
+    ownerType: "user",
+    ownerId: user._id,
+    balance: 0,
+    currency: "INR",
+  });
+  await wallet.save();
+  return wallet;
+}
 
 // Finding the user by its credentials and checking the password with our hashed one
 UserSchema.statics.findByCredentials = async (email, password) => {
