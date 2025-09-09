@@ -73,18 +73,36 @@ exports.redeemQRCode = async (req, res) => {
     const { code } = req.body;
     const userId = req.user._id;
 
+    if (!code) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: "QR code is required" });
+    }
+
     // Atomically find and mark QR as used
     const qr = await QRCodeModel.findOneAndUpdate(
       { code, status: "unused" },
       { $set: { status: "used", usedBy: userId, usedAt: new Date() } },
       { session, new: true }
     );
-    if (!qr) throw new Error("QR not found or already used");
+    if (!qr) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: "QR not found or already used" });
+    }
 
     // Admin wallet
     const adminWallet = await Wallet.findOne({ ownerType: "admin" }).session(session);
-    if (!adminWallet || adminWallet.balance < qr.amount) {
-      throw new Error("Insufficient admin balance");
+    if (!adminWallet) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({ success: false, message: "Admin wallet not found" });
+    }
+
+    if (adminWallet.balance < qr.amount) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(409).json({ success: false, message: "Insufficient admin balance" });
     }
 
     // User wallet (create if not exists)
@@ -122,14 +140,19 @@ exports.redeemQRCode = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.json({ success: true, transaction });
+    return res.status(200).json({
+      success: true,
+      message: "QR code redeemed successfully",
+      transaction
+    });
   } catch (err) {
     console.log("the error", err);
     await session.abortTransaction();
     session.endSession();
-    res.status(400).json({ error: err.message });
+    return res.status(500).json({ success: false, message: "Something went wrong", error: err.message });
   }
 };
+
 
 
 
