@@ -88,7 +88,7 @@ exports.redeemQRCode = async (req, res) => {
     if (!qr) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(200).json({ success: false, message: "QR not found or already used" });
+      return res.status(404).json({ success: false, message: "QR not found or already used" });
     }
 
     // Admin wallet
