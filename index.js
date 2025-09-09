@@ -16,6 +16,7 @@ const User = require("./src/routes/user");
 const Admin = require("./src/routes/admin");
 const QRCODE = require("./src/routes/qrcode");
 const Product = require("./src/routes/product");
+const Transaction = require("./src/routes/transaction");
 
 
 const port = process.env.PORT || 9000;
@@ -53,7 +54,7 @@ app.use('/api/user', User);
 app.use('/api/qrcode', QRCODE);
 app.use('/api/product', Product);
 app.use('/api/admin', Admin);
-
+app.use('/api/transaction', Transaction);
 
 
 
