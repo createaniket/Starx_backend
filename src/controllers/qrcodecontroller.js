@@ -124,6 +124,7 @@ exports.redeemQRCode = async (req, res) => {
 
     res.json({ success: true, transaction });
   } catch (err) {
+    console.log("the error", err);
     await session.abortTransaction();
     session.endSession();
     res.status(400).json({ error: err.message });
