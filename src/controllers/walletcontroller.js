@@ -16,6 +16,7 @@ exports.getWallet = async (req, res) => {
   }
 };
 
+
 /**
  * Create wallet (admin or user)
  */
