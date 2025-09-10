@@ -5,13 +5,11 @@ const Wallet = require("../models/Wallet");
  */
 exports.getWallet = async (req, res) => {
   try {
-    const { ownerType, ownerId } = req.params;
-
-    const wallet = await Wallet.findOne({ ownerType, ownerId });
+    const ownerId = req.user._id; // Assuming req.user is set by auth middleware
+    const wallet = await Wallet.findOne({ ownerId });
     if (!wallet) {
       return res.status(404).json({ error: "Wallet not found" });
     }
-
     res.json({ success: true, wallet });
   } catch (err) {
     res.status(500).json({ error: err.message });
