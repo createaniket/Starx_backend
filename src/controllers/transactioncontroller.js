@@ -15,6 +15,7 @@ exports.getTransaction = async (req, res) => {
 
 // Get Transactions of a User
 exports.getUserTransactions = async (req, res) => {
+  console.log("i am here in get user trans", req.user);
   try {
     const userId = req.user?._id;
     if (!userId) {
