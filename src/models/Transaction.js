@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const transactionSchema = new mongoose.Schema(
   {
     qrCode: { type: mongoose.Schema.Types.ObjectId, ref: "QRCode" },
-    product: { type: String },
+    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     amount: { type: Number, required: true },
 
     fromWallet: { type: mongoose.Schema.Types.ObjectId, ref: "Wallet" },

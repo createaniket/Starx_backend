@@ -6,12 +6,31 @@ const Wallet = require('../models/Wallet');
 // ✅ Get all transaction
 exports.getTransaction = async (req, res) => {
   try {
-    const transaction = await Transaction.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, transaction:transaction });
+    const transactions = await Transaction.find()
+      .sort({ createdAt: -1 })
+      .populate("product");
+
+    if (!transactions || transactions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No transactions found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      transactions, // keep naming consistent (plural since it’s an array)
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Error fetching transactions:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+      error: err.message, // optional: expose error message for debugging
+    });
   }
 };
+
 
 // Get Transactions of a User
 exports.getUserTransactions = async (req, res) => {
