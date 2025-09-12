@@ -7,9 +7,11 @@ const router = new express.Router();
 
 const { generateQRCodes, redeemQRCode, getAllQRCodes } = require("../controllers/qrcodecontroller");
 
+const AdminAuth = require("../middlewares/AdAuth");
 
-router.post("/create", generateQRCodes)
+
+router.post("/create",AdminAuth, generateQRCodes)
 router.post('/redeem', Auth, redeemQRCode);
-router.get('/all', getAllQRCodes);
+router.get('/all',AdminAuth, getAllQRCodes);
 
 module.exports = router;

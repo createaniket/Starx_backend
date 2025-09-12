@@ -207,7 +207,7 @@ exports.getUserQRCodes = async (req, res) => {
  */
 exports.getAllQRCodes = async (req, res) => {
   try {
-    const qrCodes = await QRCodeModel.find().populate("product usedBy");
+    const qrCodes = await QRCodeModel.find();
     res.json(qrCodes);
   } catch (err) {
     res.status(500).json({ error: err.message });

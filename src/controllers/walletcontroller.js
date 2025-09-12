@@ -16,6 +16,23 @@ exports.getWallet = async (req, res) => {
   }
 };
 
+exports.getWalletAdmin = async (req, res) => {
+  try {
+    console.log("inside get wallet admin");
+    const AdminId = req.admin; // Assuming req.admin is set by auth middleware
+    console.log("the admin id is ", AdminId);
+    const wallet = await Wallet.findOne({ ownerId: AdminId });
+    if (!wallet) {
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+    res.json({ success: true, wallet });
+  }
+  catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+
+};
+
 
 /**
  * Create wallet (admin or user)

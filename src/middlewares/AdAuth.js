@@ -1,10 +1,12 @@
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
+
 const AdAuth = async (req, res, next) => {
+
   try {
     if (req.header("Authorization")) {
       const token = req.header("Authorization").replace("Bearer ", "");
-      const decoded = jwt.verify(token, process.env.UserTokenKey);
+      const decoded = jwt.verify(token, process.env.AdminTokenKey);
 
       const admin = await Admin.findOne({
         _id: decoded._id,
@@ -22,6 +24,7 @@ const AdAuth = async (req, res, next) => {
       });
     }
   } catch (e) {
+    console.log("the error from adauth is ", e);
     res.status(401).json({ error: e.message }); // to be commeted (in future)
     next();
   }
