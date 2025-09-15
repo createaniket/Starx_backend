@@ -4,11 +4,13 @@ const Wallet = require('../models/Wallet');
 
 
 // ✅ Get all transaction
+// ✅ Get all transactions with wallet details
 exports.getTransaction = async (req, res) => {
   try {
     const transactions = await Transaction.find()
-      .sort({ createdAt: -1 })
-      .populate("product");
+      .populate("fromWallet") // get full wallet details
+      .populate("toWallet")   // get full wallet details
+      .sort({ createdAt: -1 });
 
     if (!transactions || transactions.length === 0) {
       return res.status(404).json({
@@ -19,14 +21,14 @@ exports.getTransaction = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      transactions, // keep naming consistent (plural since it’s an array)
+      transactions,
     });
   } catch (err) {
     console.error("Error fetching transactions:", err);
     res.status(500).json({
       success: false,
       message: "Server error. Please try again later.",
-      error: err.message, // optional: expose error message for debugging
+      error: err.message,
     });
   }
 };
