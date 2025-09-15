@@ -10,6 +10,7 @@ exports.getTransaction = async (req, res) => {
     const transactions = await Transaction.find()
       .populate("fromWallet") // get full wallet details
       .populate("toWallet")   // get full wallet details
+      .populate("product")
       .sort({ createdAt: -1 });
 
     if (!transactions || transactions.length === 0) {

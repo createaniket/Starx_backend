@@ -20,46 +20,82 @@ cloudinary.config({
 });
 
 
+// exports.generateQRCodes = async (req, res) => {
+//   try {
+//     const { productId, amount, count } = req.body;
+//     const product = await Product.findById(productId);
+//     if (!product) return res.status(404).json({ error: "Product not found" });
+
+//     let qrCodes = [];
+
+//     for (let i = 0; i < count; i++) {
+//       // Only keep UUID / unique code in QR
+//       const uniqueCode = uuidv4();
+
+//       // Encode only the unique code (not amount/product)
+//       const qrImageBase64 = await QRCode.toDataURL(uniqueCode);
+
+//       // Upload to Cloudinary
+//       const uploadRes = await cloudinary.uploader.upload(qrImageBase64, {
+//         folder: "qr_codes",
+//         public_id: uniqueCode
+//       });
+
+//       const qr = await QRCodeModel.create({
+//         code: uniqueCode,
+//         product: productId,
+//         amount,
+//         qrImageUrl: uploadRes.secure_url
+//       });
+
+//       qrCodes.push(qr);
+//     }
+
+//     product.qrCount += count;
+//     await product.save();
+
+//     res.json({ success: true, qrCodes });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+
+
 exports.generateQRCodes = async (req, res) => {
   try {
-    const { productId, amount, count } = req.body;
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ error: "Product not found" });
+    const { amount, count } = req.body;
 
     let qrCodes = [];
 
     for (let i = 0; i < count; i++) {
-      // Only keep UUID / unique code in QR
+      // Generate a unique code
       const uniqueCode = uuidv4();
 
-      // Encode only the unique code (not amount/product)
+      // Create QR base64 image
       const qrImageBase64 = await QRCode.toDataURL(uniqueCode);
 
       // Upload to Cloudinary
       const uploadRes = await cloudinary.uploader.upload(qrImageBase64, {
         folder: "qr_codes",
-        public_id: uniqueCode
+        public_id: uniqueCode,
       });
 
+      // Save in DB
       const qr = await QRCodeModel.create({
         code: uniqueCode,
-        product: productId,
         amount,
-        qrImageUrl: uploadRes.secure_url
+        qrImageUrl: uploadRes.secure_url,
       });
 
       qrCodes.push(qr);
     }
-
-    product.qrCount += count;
-    await product.save();
 
     res.json({ success: true, qrCodes });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 
 /**
