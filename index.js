@@ -22,7 +22,7 @@ const Wallet = require("./src/routes/wallet");
 
 const port = process.env.PORT || 9000;
 
-app.use("/Public", express.static(path.join(__dirname, "Public")));
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 
 // Connect to MongoDB

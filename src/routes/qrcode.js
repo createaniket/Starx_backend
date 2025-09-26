@@ -5,7 +5,7 @@ const express = require("express");
 
 const router = new express.Router();
 
-const { generateQRCodes, redeemQRCode, getAllQRCodes } = require("../controllers/qrcodecontroller");
+const { generateQRCodes, redeemQRCode, getAllQRCodes, generateQRCodesWithName, generateQRCodesWithLogo } = require("../controllers/qrcodecontroller");
 
 const AdminAuth = require("../middlewares/AdAuth");
 
@@ -13,5 +13,7 @@ const AdminAuth = require("../middlewares/AdAuth");
 router.post("/create",AdminAuth, generateQRCodes)
 router.post('/redeem', Auth, redeemQRCode);
 router.get('/all',AdminAuth, getAllQRCodes);
+router.post("/createwithname",AdminAuth, generateQRCodesWithName)
+router.post("/createwithlogo",AdminAuth, generateQRCodesWithLogo)
 
 module.exports = router;
