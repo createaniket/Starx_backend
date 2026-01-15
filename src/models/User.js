@@ -66,7 +66,9 @@ UserSchema.methods.CreateWallet = async function () {
 
 // Finding the user by its credentials and checking the password with our hashed one
 UserSchema.statics.findByCredentials = async (email, password) => {
+  console.log("Finding user by credentials:", email);
   const user = await User.findOne({ email });
+  console.log("User found:", user);
 
   if (!user) {
     throw new Error(
