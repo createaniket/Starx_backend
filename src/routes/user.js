@@ -36,8 +36,46 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/getall", async (req, res) => {
-  const result = await User.find({});
+  const users = await User.find({ isDeleted: false });
+
   res.status(200).json({result:result});
 });
+
+
+router.patch("/delete-user-data/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      {
+        isDeleted: true,
+        deletedAt: new Date(),
+        tokens: [], // ✅ logout from all devices
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User account disabled successfully (Soft Deleted).",
+      userId: user._id,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while soft deleting user",
+    });
+  }
+});
+
 
 module.exports = router;

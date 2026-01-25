@@ -4,39 +4,35 @@ const bcrypt = require("bcrypt");
 
 const UserSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      trim: true,
-      required: true,
-    },
+    name: { type: String, trim: true, required: true },
 
     email: {
       type: String,
       unique: true,
       required: true,
-      tolowercase: true,
       trim: true,
       lowercase: true,
     },
-    password: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: 8,
-    },
-    phone: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+
+    password: { type: String, required: true, trim: true, minlength: 8 },
+
+    phone: { type: String, required: true, trim: true },
 
     tokens: [
       {
-        token: {
-          type: String,
-        },
+        token: { type: String },
       },
     ],
+
+    // ✅ Soft delete fields
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -65,24 +61,47 @@ UserSchema.methods.CreateWallet = async function () {
 }
 
 // Finding the user by its credentials and checking the password with our hashed one
+// UserSchema.statics.findByCredentials = async (email, password) => {
+//   console.log("Finding user by credentials:", email);
+//   const user = await User.findOne({ email });
+//   console.log("User found:", user);
+
+//   if (!user) {
+//     throw new Error(
+//       "Looks like you're not registered yet! Ready to join us? Sign up now and Expand Your Brand Demand!"
+//     );
+//   }
+
+//   const isMatch = await bcrypt.compare(password, user.password);
+
+//   if (!isMatch) {
+//     throw new Error("Password didn't Match");
+//   }
+//   return user;
+// };
+
+
 UserSchema.statics.findByCredentials = async (email, password) => {
-  console.log("Finding user by credentials:", email);
   const user = await User.findOne({ email });
-  console.log("User found:", user);
 
   if (!user) {
-    throw new Error(
-      "Looks like you're not registered yet! Ready to join us? Sign up now and Expand Your Brand Demand!"
-    );
+    throw new Error("User not found");
+  }
+
+  // ✅ block deleted user
+  if (user.isDeleted) {
+    throw new Error("Your account has been disabled. Please contact support.");
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw new Error("Password didn't Match");
+    throw new Error("Password didn't match");
   }
+
   return user;
 };
+
 
 UserSchema.pre("save", async function (next) {
   const User = this;
