@@ -42,37 +42,50 @@ router.get("/getall", async (req, res) => {
 });
 
 
-router.patch("/delete-user-data/:id", async (req, res) => {
+router.patch("/delete-user-data", Auth, async (req, res) => {
   try {
-    const { id } = req.params;
+    const user = req.user;
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      {
-        isDeleted: true,
-        deletedAt: new Date(),
-        tokens: [], // ✅ logout from all devices
-      },
-      { new: true }
-    );
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    user.tokens = [];
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    await user.save();
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: "User account disabled successfully (Soft Deleted).",
-      userId: user._id,
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+
+
+router.post("/logout", Auth, async (req, res) => {
+  try {
+    const user = req.user;
+    const token = req.token;
+
+    // ❌ Remove only current token
+    user.tokens = user.tokens.filter((t) => t.token !== token);
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully (Current device)",
     });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({
+
+    res.status(500).json({
       success: false,
-      message: "Server error while soft deleting user",
+      message: "Logout failed",
     });
   }
 });
